@@ -36,13 +36,13 @@ namespace FizzBuzzWhizz
             //int[] special_num_list = new int[3] { 3, 6, 8 };
 
             special_num_list = new int[3] { 3, 5, 7 };
-            FizzBuzzWhizz_Test_Warpper(special_num_list);
+            FizzBuzzWhizz_Test_Wrapper(special_num_list);
 
             special_num_list = new int[3] { 2, 4, 8 };
-            FizzBuzzWhizz_Test_Warpper(special_num_list);
+            FizzBuzzWhizz_Test_Wrapper(special_num_list);
 
             special_num_list = new int[3] { 3, 6, 8 };
-            FizzBuzzWhizz_Test_Warpper(special_num_list);
+            FizzBuzzWhizz_Test_Wrapper(special_num_list);
             //*/
 
             Test("3,5,7");
@@ -54,7 +54,7 @@ namespace FizzBuzzWhizz
             Console.ReadKey();
         }
 
-        static string[] FizzBuzzWhizz_Test_Warpper(int[] special_num_list)
+        static string[] FizzBuzzWhizz_Test_Wrapper(int[] special_num_list)
         {
             const int max_number = 100;
             string[] word_list = new string[3] { "Fizz", "Buzz", "Whizz" };
@@ -204,7 +204,7 @@ namespace FizzBuzzWhizz
                     // 右边循环(该个,十,百,千,万位的右边, 即低位循环)
                     for (right_num = right_start_num + 0; (right_num < right_max_num && right_num <= max_number); right_num += right_num_step) {
                     //for (right_num = right_start_num + 0; (right_num < right_max_num && right_num <= max_number); ++right_num) {
-                        if (sayword_index_list[right_num] != FIRST_SPECIAL_NUM_FIXED_INDEX)
+                        //if (sayword_index_list[right_num] != FIRST_SPECIAL_NUM_FIXED_INDEX)
                             sayword_index_list[right_num] = FIRST_SPECIAL_NUM_FIXED_INDEX;
 
                         if (digital < integer_base10_length) {
@@ -212,7 +212,7 @@ namespace FizzBuzzWhizz
                             left_start_num = right_num + left_num_step;
                             // 左边循环(该个,十,百,千,万位的左边, 即高位循环)
                             for (left_num = left_start_num; left_num <= max_number; left_num += left_num_step) {
-                                if (sayword_index_list[left_num] != FIRST_SPECIAL_NUM_FIXED_INDEX)
+                                //if (sayword_index_list[left_num] != FIRST_SPECIAL_NUM_FIXED_INDEX)
                                     sayword_index_list[left_num] = FIRST_SPECIAL_NUM_FIXED_INDEX;
                             }
                         }
