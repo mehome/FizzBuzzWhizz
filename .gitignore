@@ -56,6 +56,19 @@
 # *.vcxproj.user
 /Debug
 /Release
+/x86-Debug
+/x86-Release
+/x64-Debug
+/x64-Release
+
+# tmp and obj files
+/obj
+/gen
+/tmp
+/temp
+
+# For Visual Studio C# files on Windows
+.cache
 
 # Some files on Windows
 .DS_Store*
