@@ -380,6 +380,15 @@ namespace FizzBuzzWhizz
             Console.WriteLine("失业青年耗时：" + swSolve.Elapsed.TotalMilliseconds + " ms");
             //Console.WriteLine("失业青年耗时：" + swSolve.ElapsedTicks + " tick(s)");
 
+            swSolve.Restart();
+            for (int i = 0; i < 10000; i++)
+            {
+                Test3(s2);
+            }
+            swSolve.Stop();
+            Console.WriteLine("牛比青年耗时：" + swSolve.Elapsed.TotalMilliseconds + " ms");
+            //Console.WriteLine("牛比青年耗时：" + swSolve.ElapsedTicks + " tick(s)");
+
             Console.WriteLine();
         }
 
@@ -422,6 +431,27 @@ namespace FizzBuzzWhizz
                     result[i - 1] = i.ToString();
                 }
             }
+            return result;
+        }
+
+        private static string[] Test3(int[] a)
+        {
+            string[] result = new string[101];
+            //Console.WriteLine("说出三个不同的特殊数,用','隔开 ");
+            //string[] s1 = Console.ReadLine().Split(',');
+            string[] s1 = new string[3] {
+                a[0].ToString(), a[1].ToString(), a[2].ToString()
+            };
+            for (int i = 1; i < 101; i++)
+            {
+                if (i.ToString().Contains(s1[0])) {
+                    result[i] = "Fizz";
+                }
+                else {
+                    result[i] = (i % int.Parse(s1[0]) == 0 ? "Fizz" : "") + (i % int.Parse(s1[1]) == 0 ? "Buzz" : "") + (i % int.Parse(s1[2]) == 0 ? "Whizz" : "") + ((i % int.Parse(s1[0]) != 0 && i % int.Parse(s1[1]) != 0 && i % int.Parse(s1[2]) != 0) ? i.ToString() : "");
+                }
+            }
+            //Console.ReadKey();
             return result;
         }
 
