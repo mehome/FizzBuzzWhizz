@@ -3,6 +3,7 @@
 #include <FizzBuzzWhizz/stop_watch.h>
 
 #include <FizzBuzzWhizz/FastStrUtils.h>
+#include <FizzBuzzWhizz/aligned_malloc.h>
 #include <malloc.h>
 
 using namespace annlab;
@@ -69,7 +70,7 @@ void FizzBuzzWhizz_fast(const int max_number,
 
     // 求出mask对应的特殊报数字符串, 共max_mask种(2^3 = 8种)
     char *mask_sayword_list, *cur_sayword_list;
-    mask_sayword_list = (char *)_aligned_malloc(max_mask * max_word_length * sizeof(char), STRING_ADDR_ALIGNMENT);
+    mask_sayword_list = (char *)iso_aligned_malloc(max_mask * max_word_length * sizeof(char), STRING_ADDR_ALIGNMENT);
     if (mask_sayword_list == NULL) {
         printf("Error: alloc string array [mask_sayword_list] out of memory\n\n");
         return;
@@ -265,7 +266,7 @@ void FizzBuzzWhizz_fast(const int max_number,
     // 如果不输出到屏幕, 则输出到字符串数组
     char *sayword_result, *cur_sayword_result;
     index_mask_t *cur_sayword_index_list;
-    sayword_result = (char *)_aligned_malloc((max_number + 1) * max_word_length * sizeof(char), STRING_ADDR_ALIGNMENT);
+    sayword_result = (char *)iso_aligned_malloc((max_number + 1) * max_word_length * sizeof(char), STRING_ADDR_ALIGNMENT);
     if (sayword_result == NULL) {
         printf("Error: alloc string array [sayword_result] out of memory\n");
         return;
@@ -290,7 +291,7 @@ void FizzBuzzWhizz_fast(const int max_number,
     }
     else {
         if (sayword_result)
-            _aligned_free(sayword_result);
+            iso_aligned_free(sayword_result);
     }
 
 #if defined(FIZZ_NATIVE_USE_STOPWATCH) && (FIZZ_NATIVE_USE_STOPWATCH != 0)
@@ -304,7 +305,7 @@ void FizzBuzzWhizz_fast(const int max_number,
 
     // 释放内存
     if (mask_sayword_list)
-        _aligned_free(mask_sayword_list);
+        iso_aligned_free(mask_sayword_list);
     if (sayword_index_list)
         free(sayword_index_list);
 }
@@ -353,7 +354,7 @@ void FizzBuzzWhizz_fast_Test(const int max_number,
         for (int i = 0; i < MAX_LOOP_TIME; ++i) {
             FizzBuzzWhizz_fast(max_number, max_word_type, max_word_length, say_word_list, special_num_list, &say_word_result);
             if (say_word_result)
-                _aligned_free(say_word_result);
+                iso_aligned_free(say_word_result);
         }
         sw.stop();
 
@@ -364,7 +365,7 @@ void FizzBuzzWhizz_fast_Test(const int max_number,
     }
 
     if (say_word_result) {
-        _aligned_free(say_word_result);
+        iso_aligned_free(say_word_result);
         say_word_result = NULL;
     }
 }

@@ -72,6 +72,7 @@ void FizzBuzzWhizz_stl(const int max_number,
     std::vector<string> mask_sayword_list;
 
     sayword.reserve(max_word_length);
+    //sayword.resize(max_word_length);
     mask_sayword_list.reserve(max_mask);
     //mask_sayword_list.resize(max_mask);
     for (mask = 0; mask < max_mask; ++mask) {
@@ -84,6 +85,7 @@ void FizzBuzzWhizz_stl(const int max_number,
         }
         mask_sayword_list.push_back(sayword);
         //mask_sayword_list[mask] = sayword.c_str();
+        //mask_sayword_list[mask] = sayword;
     }
 
     // ·ÖÅäsayword_index_listÄÚ´æ
@@ -177,11 +179,10 @@ void FizzBuzzWhizz_stl(const int max_number,
     //std::vector<string> say_word_result;
     //say_word_result.clear();
     //say_word_result.reserve(max_number + 1);
-    //say_word_result.clear();
     if (say_word_result.size() != (max_number + 1))
         say_word_result.resize(max_number + 1);
     //say_word_result.push_back("");
-    //say_word_result[0] = "";
+    say_word_result[0] = "";
 #if 1
     for (num = 1; num <= max_number; ++num) {
         index = sayword_index_list[num];

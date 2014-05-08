@@ -187,12 +187,6 @@ void aligned_malloc_test()
         _aligned_free(ptr);
 
     ptr = (void *)_aligned_malloc(64, alignment);
-    if (ptr != NULL) {
-        if ((((uint32_t)ptr + offset) % alignment) == 0)
-            printf("This pointer: 0x%08X, is offset by %d on alignment of %d\n", ptr, offset, alignment);
-        else
-            printf("This pointer: 0x%08X, does not satisfy offset %d and alignment %d\n", ptr, offset, alignment);
-    }
     if (ptr)
         _aligned_free(ptr);
 
@@ -207,20 +201,16 @@ void aligned_malloc_test()
         iso_aligned_free(ptr);
 
     ptr = (void *)iso_aligned_malloc(64, alignment);
-    if (ptr != NULL) {
-        if ((((uint32_t)ptr + offset) % alignment) == 0)
-            printf("This pointer: 0x%08X, is offset by %d on alignment of %d\n", ptr, offset, alignment);
-        else
-            printf("This pointer: 0x%08X, does not satisfy offset %d and alignment %d\n", ptr, offset, alignment);
-    }
     if (ptr)
         iso_aligned_free(ptr); 
 }
 
 int main(int argc, char* argv[])
 {
-    //aligned_malloc_test();
-    //return 0;
+#ifdef _DEBUG
+    aligned_malloc_test();
+    return 0;
+#endif
 
     // 唤醒CPU, 进行预热, 因为现在很多主板和CPU都支持空闲时自动降频
     iso_cpu_warm_up();

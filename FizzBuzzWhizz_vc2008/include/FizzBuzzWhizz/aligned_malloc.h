@@ -22,6 +22,8 @@
 /* aligned_block的标志位大小, 等于void *指针的大小 */
 #define ALIGN_SIGN_SIZE             sizeof(void *)
 
+#define NO_MANS_LAND_SIZE           4
+
 #define UINTPTR_T_OFFSET(offset)    ((0 - offset) & (sizeof(uintptr_t) - 1))
 
 /* for aligned_malloc() */
@@ -54,9 +56,13 @@
 /* f = v && !(v & (v - 1)); */
 /* 两者是一样的, 看喜好... */
 
-#define IS_POWER_OF_2(v)            ((v) && (!((uint32_t)(v) & ((uint32_t)(v) - 1))))
+#define IS_POWER_OF_2_FAST(v)       (((size_t)(v) & ((size_t)(v) - 1)) == 0)
 
-#define _IS_POWER_OF_2(V)           ((((v) != 0)) && (((v) & ((v) - 1)) == 0))
+#define NOT_IS_POWER_OF_2_FAST(v)   ((size_t)(v) & ((size_t)(v) - 1))
+
+#define IS_POWER_OF_2(v)            ((v) && (!((size_t)(v) & ((size_t)(v) - 1))))
+
+#define _IS_POWER_OF_2(v)           ((((v) != 0)) && (((v) & ((v) - 1)) == 0))
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,6 +73,8 @@ typedef struct align_block_header_t
     void *          pvAlloc;
     unsigned char   Sign[ALIGN_SIGN_SIZE];
 } ALIGN_BLOCK_HEADER, * PALIGN_BLOCK_HEADER;
+
+#ifndef iso_aligned_malloc
 
 size_t __cdecl iso_get_alignment(size_t alignment);
 size_t __cdecl iso_adjust_alignment(size_t alignment);
@@ -81,7 +89,9 @@ void * __cdecl iso_aligned_offset_realloc(void *ptr, size_t new_size, size_t ali
 void * __cdecl iso_aligned_offset_recalloc(void *ptr, size_t new_size, size_t alignment, size_t offset);
 void * __cdecl iso_aligned_offset_calloc(size_t size, size_t alignment, size_t offset);
 
-void * __cdecl iso_aligned_free(const void *ptr);
+void   __cdecl iso_aligned_free(const void *ptr);
+
+#endif  /* iso_aligned_malloc */
 
 #ifdef __cplusplus
 }

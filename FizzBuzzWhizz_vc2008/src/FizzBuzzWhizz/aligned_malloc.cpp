@@ -4,8 +4,38 @@
 #include <malloc.h>
 #include <memory.h>
 
+#ifndef _MSC_VER
+  #ifndef _RPT1
+    #define _RPT1(rptno, msg, arg1)
+  #endif
+#endif
+
 static unsigned char _cAlignSignFill    = 0xE9;     /* fill no-man's sign for aligned routines */
 static unsigned char _cClearSignFill    = 0x00;     /* fill no-man's sign for free routines */
+
+/*
+ * The following values are non-zero, constant, odd, large, and atypical
+ *      Non-zero values help find bugs assuming zero filled data.
+ *      Constant values are good so that memory filling is deterministic
+ *          (to help make bugs reproducable).  Of course it is bad if
+ *          the constant filling of weird values masks a bug.
+ *      Mathematically odd numbers are good for finding bugs assuming a cleared
+ *          lower bit.
+ *      Large numbers (byte values at least) are less typical, and are good
+ *          at finding bad addresses.
+ *      Atypical values (i.e. not too often) are good since they typically
+ *          cause early detection in code.
+ *      For the case of no-man's land and free blocks, if you store to any
+ *          of these locations, the memory integrity checker will detect it.
+ *
+ *      _bAlignLandFill has been changed from 0xBD to 0xED, to ensure that
+ *      4 bytes of that (0xEDEDEDED) would give an inaccessible address under 3gb.
+ */
+
+static unsigned char s_cNoMansLandFill = 0xFD;   /* fill no-man's land with this */
+static unsigned char s_cAlignLandFill  = 0xED;   /* fill no-man's land for aligned routines */
+static unsigned char s_cDeadLandFill   = 0xDD;   /* fill free objects with this */
+static unsigned char s_cCleanLandFill  = 0xCD;   /* fill new objects with this */
 
 /*******************************************************************************
 *static int _CheckBytes() - verify byte range set to proper value
@@ -23,7 +53,8 @@ static unsigned char _cClearSignFill    = 0x00;     /* fill no-man's sign for fr
 *       FALSE otherwise
 *
 *******************************************************************************/
-bool __cdecl _iso_check_bytes(
+extern "C"
+static bool __cdecl _iso_check_bytes(
         unsigned char *pb,
         unsigned char bCheck,
         size_t nSize
@@ -49,9 +80,12 @@ bool __cdecl _iso_check_bytes(
 // http://stackoverflow.com/questions/364985/algorithm-for-finding-the-smallest-power-of-two-thats-greater-or-equal-to-a-giv
 //
 
-unsigned __cdecl iso_next_power_of_2(unsigned x)
+extern "C"
+static size_t __cdecl iso_next_power_of_2(size_t x)
 {
 #if 1
+    if (x == 0)
+        return 0;
     // ms1b
     --x;
     x |= x >> 1;
@@ -61,7 +95,7 @@ unsigned __cdecl iso_next_power_of_2(unsigned x)
     x |= x >> 16;
     return ++x;
 #else
-    unsigned ms1b = 1;
+    size_t ms1b = 1;
     while (ms1b < x)
         ms1b <<= 1;
 
@@ -74,8 +108,10 @@ size_t __cdecl iso_adjust_alignment(size_t alignment)
     alignment = iso_next_power_of_2(alignment);
     _ASSERT(IS_POWER_OF_2(alignment));
 
+#if 1
     alignment = (alignment > sizeof(uintptr_t)) ? alignment : sizeof(uintptr_t);
     _ASSERT(alignment > 0);
+#endif
 
     return alignment;
 }
@@ -97,15 +133,16 @@ void * __cdecl iso_aligned_malloc(size_t size, size_t alignment)
 #endif
 
     /* 如果不是2的幂次方, 则调整到最接近的2的幂次方 */
-    _ASSERT(IS_POWER_OF_2(alignment));
-    if (!IS_POWER_OF_2(alignment)) {
-        alignment = iso_adjust_alignment(alignment);
-        _ASSERT(!IS_POWER_OF_2(alignment));
+    _ASSERT(IS_POWER_OF_2_FAST(alignment));
+#if 1
+    if (NOT_IS_POWER_OF_2_FAST(alignment)) {
+        alignment = iso_next_power_of_2(alignment);
+        _ASSERT(IS_POWER_OF_2_FAST(alignment));
     }
-    else {
-        alignment = (alignment > sizeof(uintptr_t)) ? alignment : sizeof(uintptr_t);
-        _ASSERT(alignment > 0);
-    }
+#endif
+
+    alignment = (alignment > sizeof(uintptr_t)) ? alignment : sizeof(uintptr_t);
+    _ASSERT(alignment > 0);
 
     alignment_mask = alignment - 1;
 
@@ -113,16 +150,16 @@ void * __cdecl iso_aligned_malloc(size_t size, size_t alignment)
     alloc_size = size + alignment_mask + sizeof(ALIGN_BLOCK_HEADER);
 
     pvAlloc = (uintptr_t)::malloc(alloc_size);
-    if (pvAlloc != NULL) {
+    if (pvAlloc != (uintptr_t)NULL) {
         // data pointer align to alignment bytes
-        pvData = (uintptr_t)(((uintptr_t)pvAlloc + alignment_mask + sizeof(ALIGN_BLOCK_HEADER))
+        pvData = (uintptr_t)((pvAlloc + alignment_mask + sizeof(ALIGN_BLOCK_HEADER))
             & (~alignment_mask));
 
         pBlockHdr = (ALIGN_BLOCK_HEADER *)(pvData) - 1;
         _ASSERT((uintptr_t)pBlockHdr >= pvAlloc);
 
-        pBlockHdr->pvAlloc = (void *)pvAlloc;
         ::memset((void *)pBlockHdr->Sign, _cAlignSignFill, ALIGN_SIGN_SIZE);
+        pBlockHdr->pvAlloc = (void *)pvAlloc;
 
 #ifdef _DEBUG
         // for debug
@@ -172,15 +209,16 @@ void * __cdecl iso_aligned_offset_malloc(size_t size, size_t alignment, size_t o
         return NULL;
 
     /* 如果不是2的幂次方, 则调整到最接近的2的幂次方 */
-    _ASSERT(IS_POWER_OF_2(alignment));
-    if (!IS_POWER_OF_2(alignment)) {
-        alignment = iso_adjust_alignment(alignment);
-        _ASSERT(!IS_POWER_OF_2(alignment));
+    _ASSERT(IS_POWER_OF_2_FAST(alignment));
+#if 1
+    if (NOT_IS_POWER_OF_2_FAST(alignment)) {
+        alignment = iso_next_power_of_2(alignment);
+        _ASSERT(IS_POWER_OF_2_FAST(alignment));
     }
-    else {
-        alignment = (alignment > sizeof(uintptr_t)) ? alignment : sizeof(uintptr_t);
-        _ASSERT(alignment > 0);
-    }
+#endif
+
+    alignment = (alignment > sizeof(uintptr_t)) ? alignment : sizeof(uintptr_t);
+    _ASSERT(alignment > 0);
 
     alignment_mask = alignment - 1;
     uintptr_offset = (0 - offset) & (sizeof(uintptr_t) - 1);
@@ -189,7 +227,7 @@ void * __cdecl iso_aligned_offset_malloc(size_t size, size_t alignment, size_t o
     alloc_size = size + alignment_mask + sizeof(ALIGN_BLOCK_HEADER) + uintptr_offset;
 
     pvAlloc = (uintptr_t)::malloc(alloc_size);
-    if (pvAlloc != NULL) {
+    if (pvAlloc != (uintptr_t)NULL) {
         // data pointer align to alignment bytes
         pvData = (uintptr_t)((((uintptr_t)pvAlloc + alignment_mask + sizeof(ALIGN_BLOCK_HEADER)
             + uintptr_offset + offset) & (~alignment_mask)) - offset);
@@ -197,8 +235,8 @@ void * __cdecl iso_aligned_offset_malloc(size_t size, size_t alignment, size_t o
         pBlockHdr = (ALIGN_BLOCK_HEADER *)(pvData - uintptr_offset) - 1;
         _ASSERT((uintptr_t)pBlockHdr >= pvAlloc);
 
-        pBlockHdr->pvAlloc = (void *)pvAlloc;
         ::memset((void *)pBlockHdr->Sign, _cAlignSignFill, ALIGN_SIGN_SIZE);
+        pBlockHdr->pvAlloc = (void *)pvAlloc;
 
 #ifdef _DEBUG
         // for debug
@@ -269,20 +307,45 @@ void * __cdecl _iso_free_block_header(ALIGN_BLOCK_HEADER *pBlockHdr)
     return pvAlloc;
 }
 
-void * __cdecl iso_aligned_free(const void *pvData)
+void __cdecl iso_aligned_free(const void *pvData)
 {
     ALIGN_BLOCK_HEADER *pBlockHdr;
-    void *pvAlloc = NULL;
+    void *pvAlloc;
 
     _ASSERT(pvData != NULL);
     if (pvData != NULL) {
         pBlockHdr = (ALIGN_BLOCK_HEADER *)((uintptr_t)pvData & ~(sizeof(uintptr_t) - 1)) - 1;
         _ASSERT(pBlockHdr < pvData);
 
-        pvAlloc = _iso_free_block_header(pBlockHdr);
-        _ASSERT(pvAlloc != NULL);
-        _ASSERT(pvAlloc != ((void *)-1));
-        _ASSERT(pvAlloc != ((void *)-2));
+        if (_iso_check_bytes((unsigned char *)pvData - NO_MANS_LAND_SIZE, s_cNoMansLandFill, NO_MANS_LAND_SIZE)) {
+            // We don't know where (file, linenum) pvData was allocated
+            _RPT1(_CRT_ERROR, "The block at 0x%p was not allocated by _aligned routines, use free()", pvData);
+            return;
+        }
+
+        if (!_iso_check_bytes(pBlockHdr->Sign, _cAlignSignFill, ALIGN_SIGN_SIZE)) {
+            // We don't know where (file, linenum) pvData was allocated
+            _RPT1(_CRT_ERROR, "Damage before 0x%p which was allocated by aligned routine\n", pvData);
+        }
+
+        pvAlloc = pBlockHdr->pvAlloc;
+
+#if 0
+        if ((void *)pBlockHdr < pvAlloc) {
+            // We don't know where pvData was allocated
+            _RPT1(_CRT_ERROR, "Damage before 0x%p which was allocated by aligned routine\n", pvData);
+        }
+#endif
+
+#ifdef _ALIGNED_FREE_CLEAR_SIGN
+        // Set pvAlloc's value to NULL
+        pBlockHdr->pvAlloc = NULL;
+
+        // Set and fill clear sign
+        ::memset(pBlockHdr->Sign, _cClearSignFill, ALIGN_SIGN_SIZE);
+#endif  /* _ALIGNED_FREE_CLEAR_SIGN */
+
+        // Free memory block if need
+        ::free(pvAlloc);
     }
-    return pvAlloc;
 }

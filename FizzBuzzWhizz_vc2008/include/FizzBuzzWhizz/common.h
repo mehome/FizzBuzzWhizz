@@ -41,9 +41,25 @@
 /* 如果还需要更大, 可自定义新的类型, 并使其支持位操作. */
 typedef unsigned int index_mask_t;
 
+#if 1
+#define iso_aligned_malloc                  _aligned_malloc
+#define iso_aligned_free                    _aligned_free
+
+#define iso_aligned_offset_malloc           _aligned_offset_malloc
+#elif 0
+#define iso_aligned_malloc(size, alignment) malloc(size)
+#define iso_aligned_free(ptr)               free(ptr)
+#define iso_aligned_offset_malloc(size, alignment, offset) \
+                                            malloc(size)
+#else
+        //
+#endif
+
 #ifndef _MSC_VER
-#define _aligned_malloc(sizes, alignment)   malloc(sizes)
+#define _aligned_malloc(size, alignment)    malloc(size)
 #define _aligned_free(ptr)                  free(ptr)
+#define _aligned_offset_malloc(size, alignment, offset) \
+                                            malloc(size)
 #endif
 
 /* Macros for min/max. */
