@@ -97,16 +97,15 @@ void FizzBuzzWhizz_Test_Wrapper_3(const int max_number, bool display_to_screen)
         max_num_list = 1;
 
     for (index = 0; index < max_num_list; ++index) {
-
         display_special_num_list(max_word_type, special_num_list[index]);
 
-        // 使用stl的std::string, 速度慢
+        // 使用stl的std::vector和std::string, 速度较慢
         FizzBuzzWhizz_stl_Test(max_number, max_word_type, max_word_length, say_word_list, special_num_list[index], display_to_screen);
 
-        // 使用自定义的string array, 采用系统自带的字符串处理函数, 中等速度
+        // 自己分配内存实现string array, 采用系统自带的字符串处理函数, 中等速度
         FizzBuzzWhizz_sys_Test(max_number, max_word_type, max_word_length, say_word_list, special_num_list[index], display_to_screen);
 
-        // 使用自己编写的字符串处理函数, 较快
+        // 自己分配内存实现string array, 使用自己编写的字符串处理函数, 较快
         FizzBuzzWhizz_fast_Test(max_number, max_word_type, max_word_length, say_word_list, special_num_list[index], display_to_screen);
     }
 
@@ -151,16 +150,15 @@ void FizzBuzzWhizz_Test_Wrapper_4(const int max_number, bool display_to_screen)
         max_num_list = 1;
 
     for (index = 0; index < max_num_list; ++index) {
-
         display_special_num_list(max_word_type, special_num_list[index]);
 
-        // 使用stl的std::string, 速度慢
+        // 使用stl的std::vector和std::string, 速度较慢
         FizzBuzzWhizz_stl_Test(max_number, max_word_type, max_word_length, say_word_list, special_num_list[index], display_to_screen);
 
-        // 使用自定义的string array, 采用系统自带的字符串处理函数, 中等速度
+        // 自己分配内存实现string array, 采用系统自带的字符串处理函数, 中等速度
         FizzBuzzWhizz_sys_Test(max_number, max_word_type, max_word_length, say_word_list, special_num_list[index], display_to_screen);
 
-        // 使用自己编写的字符串处理函数, 较快
+        // 自己分配内存实现string array, 使用自己编写的字符串处理函数, 较快
         FizzBuzzWhizz_fast_Test(max_number, max_word_type, max_word_length, say_word_list, special_num_list[index], display_to_screen);
     }
 

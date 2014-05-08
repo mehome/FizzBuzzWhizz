@@ -71,7 +71,7 @@ void FizzBuzzWhizz_stl(const int max_number,
     string sayword;
     std::vector<string> mask_sayword_list;
 
-    sayword.resize(max_word_length);
+    sayword.reserve(max_word_length);
     mask_sayword_list.reserve(max_mask);
     //mask_sayword_list.resize(max_mask);
     for (mask = 0; mask < max_mask; ++mask) {
@@ -83,7 +83,7 @@ void FizzBuzzWhizz_stl(const int max_number,
             cur_mask >>= 1;
         }
         mask_sayword_list.push_back(sayword);
-        //mask_sayword_list[mask] = sayword;
+        //mask_sayword_list[mask] = sayword.c_str();
     }
 
     // 分配sayword_index_list内存
@@ -175,22 +175,49 @@ void FizzBuzzWhizz_stl(const int max_number,
 
     // 如果不输出到屏幕, 则输出到字符串数组
     //std::vector<string> say_word_result;
-    say_word_result.clear();
-    say_word_result.resize(max_number + 1);
+    //say_word_result.clear();
+    //say_word_result.reserve(max_number + 1);
+    //say_word_result.clear();
+    if (say_word_result.size() != (max_number + 1))
+        say_word_result.resize(max_number + 1);
+    //say_word_result.push_back("");
+    //say_word_result[0] = "";
+#if 1
     for (num = 1; num <= max_number; ++num) {
         index = sayword_index_list[num];
         // 如果不是特殊数, 则直接输出该数, 否则输出index(mask值)对应的字符串
         if (index == NORMAL_NUM_INDEX) {
             if (_itoa(num, buffer, 10))
-                //sayword_result.push_back(buffer);
+                //say_word_result.push_back(buffer);
                 say_word_result[num] = buffer;
         }
         else {
             //say_word_result.push_back(mask_sayword_list[index].c_str());
+            //say_word_result.push_back(mask_sayword_list[index]);
             //say_word_result[num] = mask_sayword_list[index].c_str();
             say_word_result[num] = mask_sayword_list[index];
         }
     }
+#else
+    std::vector<string>::iterator iter, iter_first;
+    num = 1;
+    iter_first = say_word_result.begin();
+    for (iter = ++iter_first; iter != say_word_result.end(); ++iter, ++num) {
+        index = sayword_index_list[num];
+        // 如果不是特殊数, 则直接输出该数, 否则输出index(mask值)对应的字符串
+        if (index == NORMAL_NUM_INDEX) {
+            if (_itoa(num, buffer, 10))
+                //say_word_result.push_back(buffer);
+                *iter = buffer;
+        }
+        else {
+            //say_word_result.push_back(mask_sayword_list[index].c_str());
+            //say_word_result.push_back(mask_sayword_list[index]);
+            //say_word_result[num] = mask_sayword_list[index].c_str();
+            *iter = mask_sayword_list[index];
+        }
+    }
+#endif
 
 #if defined(FIZZ_NATIVE_USE_STOPWATCH) && (FIZZ_NATIVE_USE_STOPWATCH != 0)
     sw.stop();
