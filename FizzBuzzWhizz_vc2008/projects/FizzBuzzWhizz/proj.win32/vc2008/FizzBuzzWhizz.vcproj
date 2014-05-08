@@ -179,6 +179,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath="..\..\..\..\src\FizzBuzzWhizz\aligned_malloc.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\..\src\FizzBuzzWhizz\FizzBuzzWhizz_fast.cpp"
 				>
 			</File>
@@ -200,6 +204,10 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath="..\..\..\..\include\FizzBuzzWhizz\aligned_malloc.h"
+				>
+			</File>
 			<File
 				RelativePath="..\..\..\..\include\FizzBuzzWhizz\common.h"
 				>
@@ -224,6 +232,14 @@
 				RelativePath="..\..\..\..\include\FizzBuzzWhizz\stop_watch.h"
 				>
 			</File>
+			<Filter
+				Name="vs"
+				>
+				<File
+					RelativePath="..\..\..\..\include\FizzBuzzWhizz\vs\stdint.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="res"

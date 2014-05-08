@@ -3,6 +3,7 @@
 #include <FizzBuzzWhizz/stop_watch.h>
 
 #include <FizzBuzzWhizz/FastStrUtils.h>
+#include <malloc.h>
 
 using namespace annlab;
 

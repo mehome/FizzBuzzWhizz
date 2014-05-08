@@ -1,12 +1,17 @@
 
+#include <vld.h>
+
 #include <stdlib.h>
 #include <stdio.h>
+#include <malloc.h>
 
 #include <FizzBuzzWhizz/common.h>
 #include <FizzBuzzWhizz/FizzBuzzWhizz_stl.h>
 #include <FizzBuzzWhizz/FizzBuzzWhizz_sys.h>
 #include <FizzBuzzWhizz/FizzBuzzWhizz_fast.h>
 #include <FizzBuzzWhizz/stop_watch.h>
+
+#include <FizzBuzzWhizz/aligned_malloc.h>
 
 using namespace annlab;
 
@@ -167,8 +172,58 @@ void FizzBuzzWhizz_Test_Wrapper_4(const int max_number, bool display_to_screen)
 #endif  /* DISPLAY_RESULT_TO_SCREEN */
 }
 
+void aligned_malloc_test()
+{
+    void *ptr;
+    size_t offset, alignment;
+    alignment = 256;
+    offset = 13;
+    ptr = (void *)_aligned_offset_malloc(32, alignment, offset);
+    if (ptr != NULL) {
+        if ((((uint32_t)ptr + offset) % alignment) == 0)
+            printf("This pointer: 0x%08X, is offset by %d on alignment of %d\n", ptr, offset, alignment);
+        else
+            printf("This pointer: 0x%08X, does not satisfy offset %d and alignment %d\n", ptr, offset, alignment);
+    }
+    if (ptr)
+        _aligned_free(ptr);
+
+    ptr = (void *)_aligned_malloc(64, alignment);
+    if (ptr != NULL) {
+        if ((((uint32_t)ptr + offset) % alignment) == 0)
+            printf("This pointer: 0x%08X, is offset by %d on alignment of %d\n", ptr, offset, alignment);
+        else
+            printf("This pointer: 0x%08X, does not satisfy offset %d and alignment %d\n", ptr, offset, alignment);
+    }
+    if (ptr)
+        _aligned_free(ptr);
+
+    ptr = (void *)iso_aligned_offset_malloc(32, alignment, offset);
+    if (ptr != NULL) {
+        if ((((uint32_t)ptr + offset) % alignment) == 0)
+            printf("This pointer: 0x%08X, is offset by %d on alignment of %d\n", ptr, offset, alignment);
+        else
+            printf("This pointer: 0x%08X, does not satisfy offset %d and alignment %d\n", ptr, offset, alignment);
+    }
+    if (ptr)
+        iso_aligned_free(ptr);
+
+    ptr = (void *)iso_aligned_malloc(64, alignment);
+    if (ptr != NULL) {
+        if ((((uint32_t)ptr + offset) % alignment) == 0)
+            printf("This pointer: 0x%08X, is offset by %d on alignment of %d\n", ptr, offset, alignment);
+        else
+            printf("This pointer: 0x%08X, does not satisfy offset %d and alignment %d\n", ptr, offset, alignment);
+    }
+    if (ptr)
+        iso_aligned_free(ptr); 
+}
+
 int main(int argc, char* argv[])
 {
+    //aligned_malloc_test();
+    //return 0;
+
     // 唤醒CPU, 进行预热, 因为现在很多主板和CPU都支持空闲时自动降频
     iso_cpu_warm_up();
 

@@ -43,7 +43,7 @@ typedef unsigned int index_mask_t;
 
 #ifndef _MSC_VER
 #define _aligned_malloc(sizes, alignment)   malloc(sizes)
-#define _aligned_free(p)                    free(p)
+#define _aligned_free(ptr)                  free(ptr)
 #endif
 
 /* Macros for min/max. */
