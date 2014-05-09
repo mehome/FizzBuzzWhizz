@@ -3,6 +3,7 @@
 #include <crtdbg.h>
 #include <malloc.h>
 #include <memory.h>
+#include <errno.h>
 
 #ifndef _MSC_VER
   #ifndef _RPT1
@@ -121,6 +122,34 @@ size_t __cdecl iso_get_alignment(size_t alignment)
     return iso_adjust_alignment(alignment);
 }
 
+size_t __cdecl iso_aligned_msize(void *ptr, size_t alignment, size_t offset)
+{
+    size_t header_size;     /* Size of the header block */
+    size_t footer_size;     /* Size of the footer block */
+    size_t total_size;      /* total size of the allocated block */
+    size_t user_size;       /* size of the user block*/
+    uintptr_t uintptr_offset;   /* keep the alignment of the data block */
+                            /* after the sizeof(void*) aligned pointer */
+                            /* to the beginning of the allocated block */
+
+    /* HEADER SIZE + FOOTER SIZE = uintptr_offset + ALIGNMENT + SIZE OF A POINTER*/
+    /* HEADER SIZE + USER SIZE + FOOTER SIZE = TOTAL SIZE */
+    _ASSERT(ptr != NULL);
+
+    ALIGN_BLOCK_HEADER *pBlockHdr = NULL; /* points to the beginning of the allocated block*/
+    pBlockHdr = (ALIGN_BLOCK_HEADER *)((uintptr_t)ptr & ~(sizeof(uintptr_t) - 1)) - 1;
+
+    total_size = _msize(pBlockHdr->pvAlloc);
+    header_size = (uintptr_t)ptr - (uintptr_t)(pBlockHdr->pvAlloc);
+    uintptr_offset = (0 - offset) & (sizeof(uintptr_t) - 1);
+
+    /* The align cannot be smaller than the sizeof(uintptr_t) */
+    alignment = (alignment > sizeof(uintptr_t) ? alignment : sizeof(uintptr_t)) -1;
+    footer_size = alignment + sizeof(ALIGN_BLOCK_HEADER) + uintptr_offset - header_size;
+    user_size = total_size - header_size - footer_size;
+    return user_size;
+}
+
 void * __cdecl iso_aligned_malloc(size_t size, size_t alignment)
 {
     size_t alignment_mask;
@@ -177,20 +206,17 @@ void * __cdecl iso_aligned_malloc(size_t size, size_t alignment)
 
 void * __cdecl iso_aligned_realloc(void *ptr, size_t new_size, size_t alignment)
 {
-    //
-    return NULL;
+    return iso_aligned_offset_realloc(ptr, new_size, alignment, 0);
 }
 
-void * __cdecl iso_aligned_recalloc(void *ptr, size_t new_size, size_t alignment)
+void * __cdecl iso_aligned_recalloc(void *ptr, size_t count, size_t new_size, size_t alignment)
 {
-    //
-    return NULL;
+    return iso_aligned_offset_recalloc(ptr, count, new_size, alignment, 0);
 }
 
-void * __cdecl iso_aligned_calloc(size_t size, size_t alignment)
+void * __cdecl iso_aligned_calloc(size_t count, size_t size, size_t alignment)
 {
-    //
-    return NULL;
+    return iso_aligned_offset_recalloc(NULL, count, size, alignment, 0);
 }
 
 void * __cdecl iso_aligned_offset_malloc(size_t size, size_t alignment, size_t offset)
@@ -254,20 +280,91 @@ void * __cdecl iso_aligned_offset_malloc(size_t size, size_t alignment, size_t o
 
 void * __cdecl iso_aligned_offset_realloc(void *ptr, size_t new_size, size_t alignment, size_t offset)
 {
-    //
-    return NULL;
+    uintptr_t pvAlloc, pvData, uintptr_offset, mov_sz;
+    ALIGN_BLOCK_HEADER *pBlockHdr, *s_pBlockHdr;
+
+    if (ptr == NULL)
+        return iso_aligned_offset_malloc(new_size, alignment, offset);
+
+    if (new_size == 0) {
+        iso_aligned_free(ptr);
+        return NULL;
+    }
+
+    s_pBlockHdr = (ALIGN_BLOCK_HEADER *)((uintptr_t)ptr & ~(sizeof(uintptr_t) - 1)) -1;
+
+    if (_iso_check_bytes((unsigned char *)ptr - NO_MANS_LAND_SIZE, s_cNoMansLandFill, NO_MANS_LAND_SIZE)) {
+        // We don't know where (file, linenum) ptr was allocated
+        _RPT1(_CRT_ERROR, "The block at 0x%p was not allocated by _aligned routines, use realloc()", ptr);
+        errno = EINVAL;
+        return NULL;
+    }
+
+    if (!_iso_check_bytes((unsigned char *)s_pBlockHdr->Sign, _cAlignSignFill, ALIGN_SIGN_SIZE)) {
+        // We don't know where (file, linenum) ptr was allocated
+        _RPT1(_CRT_ERROR, "Damage before 0x%p which was allocated by aligned routine\n", ptr);
+    }
+
+    mov_sz = _msize(s_pBlockHdr->pvAlloc) - ((uintptr_t)ptr - (uintptr_t)s_pBlockHdr->pvAlloc);
+
+    /* validation section */
+    _ASSERT(offset == 0 || offset < new_size);
+
+    /* 如果不是2的幂次方, 则调整到最接近的2的幂次方 */
+    _ASSERT(IS_POWER_OF_2_FAST(alignment));
+    if (NOT_IS_POWER_OF_2_FAST(alignment)) {
+        alignment = iso_next_power_of_2(alignment);
+        _ASSERT(IS_POWER_OF_2_FAST(alignment));
+    }
+
+    alignment = (alignment > sizeof(uintptr_t) ? alignment : sizeof(uintptr_t)) -1;
+
+    uintptr_offset = (0 - offset) & (sizeof(uintptr_t) - 1);
+
+    if ((pvAlloc = (uintptr_t)::malloc(new_size + alignment + sizeof(ALIGN_BLOCK_HEADER) + uintptr_offset)) == (uintptr_t)NULL)
+        return NULL;
+
+    pvData =((pvAlloc + alignment + sizeof(ALIGN_BLOCK_HEADER) + uintptr_offset + offset) & ~alignment) - offset;
+    pBlockHdr = (ALIGN_BLOCK_HEADER *)(pvData - uintptr_offset) - 1;
+    ::memset((void *)pBlockHdr->Sign, _cAlignSignFill, ALIGN_SIGN_SIZE);
+    pBlockHdr->pvAlloc = (void *)pvAlloc;
+
+    ::memcpy((void *)pvData, ptr, mov_sz > new_size ? new_size : mov_sz);
+
+    ::free(s_pBlockHdr->pvAlloc);
+
+    return (void *)pvData;
 }
 
-void * __cdecl iso_aligned_offset_recalloc(void *ptr, size_t new_size, size_t alignment, size_t offset)
+void * __cdecl iso_aligned_offset_recalloc(void *ptr, size_t count, size_t new_size, size_t alignment, size_t offset)
 {
-    //
-    return NULL;
+    size_t user_size;       /* wanted size, passed to aligned realoc */
+    size_t start_fill = 0;  /* location where aligned recalloc starts to fill with 0 */
+                            /* filling must start from the end of the previous user block */
+                            /* and must stop at the end of the new user block */
+    void * pvAlloc;         /* result of aligned recalloc*/
+
+    /* ensure that (size * count) does not overflow */
+    if (count > 0) {
+        _ASSERT((_HEAP_MAXREQ / count) >= size);
+    }
+
+    user_size = new_size * count;
+
+    if (ptr != NULL)
+        start_fill = iso_aligned_msize(ptr, alignment, offset);
+
+    pvAlloc = iso_aligned_offset_realloc(ptr, user_size, alignment, offset);
+    if (pvAlloc != NULL) {
+        if (start_fill < user_size)
+            ::memset((char *)pvAlloc + start_fill, 0, user_size - start_fill);
+    }
+    return pvAlloc;
 }
 
-void * __cdecl iso_aligned_offset_calloc(size_t size, size_t alignment, size_t offset)
+void * __cdecl iso_aligned_offset_calloc(size_t count, size_t size, size_t alignment, size_t offset)
 {
-    //
-    return NULL;
+    return iso_aligned_offset_recalloc(NULL, count, size, alignment, offset);
 }
 
 void * __cdecl _iso_free_block_header(ALIGN_BLOCK_HEADER *pBlockHdr)

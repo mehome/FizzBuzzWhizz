@@ -79,15 +79,17 @@ typedef struct align_block_header_t
 size_t __cdecl iso_get_alignment(size_t alignment);
 size_t __cdecl iso_adjust_alignment(size_t alignment);
 
+size_t __cdecl iso_aligned_msize(void *ptr, size_t alignment, size_t offset);
+
 void * __cdecl iso_aligned_malloc(size_t size, size_t alignment);
 void * __cdecl iso_aligned_realloc(void *ptr, size_t new_size, size_t alignment);
-void * __cdecl iso_aligned_recalloc(void *ptr, size_t new_size, size_t alignment);
-void * __cdecl iso_aligned_calloc(size_t size, size_t alignment);
+void * __cdecl iso_aligned_recalloc(void *ptr, size_t count, size_t new_size, size_t alignment);
+void * __cdecl iso_aligned_calloc(size_t count, size_t size, size_t alignment);
 
 void * __cdecl iso_aligned_offset_malloc(size_t size, size_t alignment, size_t offset);
 void * __cdecl iso_aligned_offset_realloc(void *ptr, size_t new_size, size_t alignment, size_t offset);
-void * __cdecl iso_aligned_offset_recalloc(void *ptr, size_t new_size, size_t alignment, size_t offset);
-void * __cdecl iso_aligned_offset_calloc(size_t size, size_t alignment, size_t offset);
+void * __cdecl iso_aligned_offset_recalloc(void *ptr, size_t count, size_t new_size, size_t alignment, size_t offset);
+void * __cdecl iso_aligned_offset_calloc(size_t count, size_t size, size_t alignment, size_t offset);
 
 void   __cdecl iso_aligned_free(const void *ptr);
 
