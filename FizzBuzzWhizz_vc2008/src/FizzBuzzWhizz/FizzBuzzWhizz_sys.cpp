@@ -131,12 +131,13 @@ void FizzBuzzWhizz_sys(const int max_number,
         // 筛选所有个,十,百,千,万,十万,百万位数等包含first_special_num的数
         for (digital = 0; digital < max_digital; ++digital) {
             right_start_num = first_special_num * integer_base10[digital];
-            right_max_num = right_start_num + integer_base10[digital];
+            right_max_num = MIN(right_start_num + integer_base10[digital] - 1, max_number);
             // 右边的步长恒为1
             right_num_step = 1;
-            // 这里(right_start_num + 0)虽然已经是first_special_num的倍数, 但是因为还要进行左边(高位)的循环, 所以不能省略
+            // 这里(right_start_num + 0)虽然已经是first_special_num的倍数,
+            // 但是因为还要进行左边(高位)的循环, 所以不能省略
             // 右边循环(该个,十,百,千,万位的右边, 即低位循环)
-            for (right_num = right_start_num + 0; (right_num < right_max_num && right_num <= max_number); right_num += right_num_step) {
+            for (right_num = right_start_num + 0; right_num <= right_max_num; right_num += right_num_step) {
                 sayword_index_list[right_num] = FIRST_SPECIAL_NUM_FIXED_INDEX;
 
                 if (digital < integer_base10_length) {

@@ -24,7 +24,7 @@
 /* 无效的特殊报数 */
 #define INVALID_SPECIAL_NUM             (-1)
 
-/* 非特殊报数索引 */
+/* 非特殊报数索引(默认) */
 #define NORMAL_NUM_INDEX                0
 
 /* 第一个特殊报数的索引值 */
