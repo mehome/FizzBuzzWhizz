@@ -64,14 +64,13 @@ public:
 
 public:
     //! Construct an absolute timestamp initialized to zero.
-    stop_watch_base() : bIsRunning(false), startTime(0), stopTime(0), elapsedTime(0) {};
+    stop_watch_base() : bIsRunning(false), startTime(0), stopTime(0) {};
     stop_watch_base(const stop_watch_base &src);
 
     stop_watch_base &operator = (const stop_watch_base &t);
 
     bool    isRunning(void) { return bIsRunning; };
 
-    void    clear(void);
     void    reset(void);
 
     //! restart() is equivalent to reset() and begin()
@@ -90,6 +89,9 @@ public:
     //! Return current time(double).
     static double       nowf(void);
 
+    //! Return current time(double).
+    static timestamp_t  now_ms(void);
+
     static double       intervalSeconds(int64_t t1, int64_t t2);
     static double       intervalSeconds(double t1, double t2);
 
@@ -100,21 +102,24 @@ public:
     timestamp_t getStartTime(void) { return startTime; };
     timestamp_t getStopTime(void)  { return stopTime;  };
 
+    void    native_get_elapsedTime(timestamp_t &elapsedTime);
+
     double  getSeconds(void);
     double  getMillisec(void);
     double  getElapsedTime(void);
 
 protected:
+    static timestamp_t  native_now();
+    static double       native_nowf();
+    static timestamp_t  native_now_ms();
+    static void         native_timestamp(timestamp_t &result);
+
     void    native_start();
     void    native_stop();
 
-    static timestamp_t  native_now();
-    static double       native_nowf();
-
 protected:
-    bool        bIsRunning;
     timestamp_t startTime, stopTime;
-    timestamp_t elapsedTime;
+    bool        bIsRunning;
 };
 
 template<class T>
@@ -123,27 +128,25 @@ inline stop_watch_base<T>::stop_watch_base(const stop_watch_base &src)
     bIsRunning  = src.bIsRunning;
     startTime   = src.startTime;
     stopTime    = src.stopTime;
-    elapsedTime = src.elapsedTime;
 }
 
 template<class T>
-inline stop_watch_base<T> &stop_watch_base<T>::operator = (const stop_watch_base &t)
+inline stop_watch_base<T> &stop_watch_base<T>::operator = (const stop_watch_base &sw)
 {
-    bIsRunning  = t.bIsRunning;
-    startTime   = t.startTime;
-    stopTime    = t.stopTime;
-    elapsedTime = t.elapsedTime;
+    bIsRunning  = sw.bIsRunning;
+    startTime   = sw.startTime;
+    stopTime    = sw.stopTime;
     return *this;
 }
 
+/* 单位: 根据各平台最小单位来决定, Windows: 心跳计数, tick; Linux: 纳秒, nsec; Unix: 微秒, usec; */
 template<class T>
-inline void stop_watch_base<T>::native_start()
+inline void stop_watch_base<T>::native_timestamp(timestamp_t &result)
 {
 #if _WIN32 || _WIN64
     LARGE_INTEGER qp_cnt;
     QueryPerformanceCounter(&qp_cnt);
-    startTime = static_cast<timestamp_t>(qp_cnt.QuadPart);
-    stopTime  = startTime;
+    result = static_cast<timestamp_t>(qp_cnt.QuadPart);
 #elif __linux__
     struct timespec ts;
 #if GMTL_USE_ASSERT
@@ -151,8 +154,7 @@ inline void stop_watch_base<T>::native_start()
 #endif /* GMTL_USE_ASSERT */
         clock_gettime(CLOCK_REALTIME, &ts);
     _GMTL_ASSERT(status == 0, "CLOCK_REALTIME not supported");
-    startTime = static_cast<timestamp_t>(static_cast<int64_t>(1000000000UL) * static_cast<int64_t>(ts.tv_sec) + static_cast<int64_t>(ts.tv_nsec));
-    stopTime  = startTime;
+    result = static_cast<timestamp_t>(static_cast<int64_t>(1000000000UL) * static_cast<int64_t>(ts.tv_sec) + static_cast<int64_t>(ts.tv_nsec));
 #else /* generic Unix */
     struct timeval tv;
 #if GMTL_USE_ASSERT
@@ -160,37 +162,11 @@ inline void stop_watch_base<T>::native_start()
 #endif /* GMTL_USE_ASSERT */
         gettimeofday(&tv, NULL);
     _GMTL_ASSERT(status == 0, "gettimeofday failed");
-    startTime = static_cast<timestamp_t>(static_cast<int64_t>(1000000) * static_cast<int64_t>(tv.tv_sec) + static_cast<int64_t>(tv.tv_usec));
-    stopTime  = startTime;
+    result = static_cast<timestamp_t>(static_cast<int64_t>(1000000UL) * static_cast<int64_t>(tv.tv_sec) + static_cast<int64_t>(tv.tv_usec));
 #endif /*(choice of OS) */
 }
 
-template<class T>
-inline void stop_watch_base<T>::native_stop()
-{
-#if _WIN32 || _WIN64
-    LARGE_INTEGER qp_cnt;
-    QueryPerformanceCounter(&qp_cnt);
-    stopTime = static_cast<timestamp_t>(qp_cnt.QuadPart);
-#elif __linux__
-    struct timespec ts;
-#if GMTL_USE_ASSERT
-    int status =
-#endif /* GMTL_USE_ASSERT */
-        clock_gettime(CLOCK_REALTIME, &ts);
-    _GMTL_ASSERT(status == 0, "CLOCK_REALTIME not supported");
-    stopTime = static_cast<timestamp_t>(static_cast<int64_t>(1000000000UL) * static_cast<int64_t>(ts.tv_sec) + static_cast<int64_t>(ts.tv_nsec));
-#else /* generic Unix */
-    struct timeval tv;
-#if GMTL_USE_ASSERT
-    int status =
-#endif /* GMTL_USE_ASSERT */
-        gettimeofday(&tv, NULL);
-    _GMTL_ASSERT(status == 0, "gettimeofday failed");
-    stopTime = static_cast<timestamp_t>(static_cast<int64_t>(1000000) * static_cast<int64_t>(tv.tv_sec) + static_cast<int64_t>(tv.tv_usec));
-#endif /*(choice of OS) */
-}
-
+/* 单位: 纳秒, nsec */
 template<class T>
 inline typename stop_watch_base<T>::timestamp_t stop_watch_base<T>::native_now(void)
 {
@@ -222,6 +198,7 @@ inline typename stop_watch_base<T>::timestamp_t stop_watch_base<T>::native_now(v
     return result;
 }
 
+/* 单位: 根据各平台最小单位来决定, Windows: 秒, second; Linux: 纳秒, nsec; Unix: 微秒, usec; */
 template<class T>
 inline double stop_watch_base<T>::native_nowf(void)
 {
@@ -257,11 +234,49 @@ inline double stop_watch_base<T>::native_nowf(void)
     return result;
 }
 
+/* 单位: 毫秒, msec */
 template<class T>
-inline void stop_watch_base<T>::clear(void)
+inline typename stop_watch_base<T>::timestamp_t stop_watch_base<T>::native_now_ms(void)
 {
-    T *pT = static_cast<T *>(this);
-    pT->clear();
+    timestamp_t result;
+
+#if _WIN32 || _WIN64
+    LARGE_INTEGER qp_cnt, qp_freq;
+    QueryPerformanceCounter(&qp_cnt);
+    QueryPerformanceFrequency(&qp_freq);
+    result = static_cast<timestamp_t>(((double)qp_cnt.QuadPart / (double)qp_freq.QuadPart) * 1000.0);
+#elif __linux__
+    struct timespec ts;
+#if GMTL_USE_ASSERT
+    int status =
+#endif /* GMTL_USE_ASSERT */
+        clock_gettime(CLOCK_REALTIME, &ts);
+    _GMTL_ASSERT(status == 0, "CLOCK_REALTIME not supported");
+    result = static_cast<timestamp_t>(static_cast<int64_t>(1000UL) * static_cast<int64_t>(ts.tv_sec) + static_cast<int64_t>(ts.tv_nsec) / static_cast<int64_t>(1000000UL));
+#else /* generic Unix */
+    struct timeval tv;
+#if GMTL_USE_ASSERT
+    int status =
+#endif /* GMTL_USE_ASSERT */
+        gettimeofday(&tv, NULL);
+    _GMTL_ASSERT(status == 0, "gettimeofday failed");
+    result = static_cast<timestamp_t>(static_cast<int64_t>(1000UL) * static_cast<int64_t>(tv.tv_sec) + static_cast<int64_t>(tv.tv_usec) / static_cast<int64_t>(1000UL));
+#endif /*(choice of OS) */
+
+    return result;
+}
+
+template<class T>
+inline void stop_watch_base<T>::native_start()
+{
+    native_timestamp(startTime);
+    stopTime = startTime;
+}
+
+template<class T>
+inline void stop_watch_base<T>::native_stop()
+{
+    native_timestamp(stopTime);
 }
 
 template<class T>
@@ -327,6 +342,12 @@ inline double stop_watch_base<T>::nowf(void)
 }
 
 template<class T>
+inline typename stop_watch_base<T>::timestamp_t stop_watch_base<T>::now_ms(void)
+{
+    return native_now_ms();
+}
+
+template<class T>
 inline double stop_watch_base<T>::intervalSeconds(int64_t t1, int64_t t2)
 {
     double seconds = (double)(t2 - t1) * 1E-9;
@@ -343,56 +364,64 @@ inline double stop_watch_base<T>::intervalSeconds(double t1, double t2)
 template<class T>
 inline typename stop_watch_base<T>::timestamp_t stop_watch_base<T>::currentTimeMillis(void)
 {
-    timestamp_t now_usecs = stop_watch_base<T>::native_now();
-    return now_usecs / static_cast<timestamp_t>(1000UL);
+    timestamp_t now_msecs = stop_watch_base<T>::native_now_ms();
+    return now_msecs;
 }
 
 template<class T>
 inline double stop_watch_base<T>::currentTimeMillisf(void)
 {
-    double now_usecs = stop_watch_base<T>::native_nowf();
-    return now_usecs * 1E-3;
+    timestamp_t now_usecs = stop_watch_base<T>::native_now();
+    return (double)now_usecs * 1E-6;
+}
+
+template<class T>
+void annlab::stop_watch_base<T>::native_get_elapsedTime(timestamp_t &elapsedTime)
+{
+    T *pT = static_cast<T *>(this);
+    return pT->native_get_elapsedTime(elapsedTime);
 }
 
 template<class T>
 inline double stop_watch_base<T>::getMillisec(void)
 {
+    timestamp_t elapsedTime;
     T *pT = static_cast<T *>(this);
-    pT->stop();
+    pT->native_get_elapsedTime(elapsedTime);
 
 #if _WIN32 || _WIN64
     LARGE_INTEGER qp_freq;
     QueryPerformanceFrequency(&qp_freq);
-    return ((double)pT->elapsedTime / (double)qp_freq.QuadPart) * 1E3;
+    return ((double)elapsedTime / (double)qp_freq.QuadPart) * 1E3;
 #elif __linux__
-    return (double)pT->elapsedTime * 1E-6;
+    return (double)elapsedTime * 1E-6;
 #else /* generic Unix */
-    return (double)pT->elapsedTime * 1E-3;
+    return (double)elapsedTime * 1E-3;
 #endif /* (choice of OS) */
 }
 
 template<class T>
 inline double stop_watch_base<T>::getSeconds(void)
 {
+    timestamp_t elapsedTime;
     T *pT = static_cast<T *>(this);
-    pT->stop();
+    pT->native_get_elapsedTime(elapsedTime);
 
 #if _WIN32 || _WIN64
     LARGE_INTEGER qp_freq;
     QueryPerformanceFrequency(&qp_freq);
-    return (double)pT->elapsedTime / (double)qp_freq.QuadPart;
+    return (double)elapsedTime / (double)qp_freq.QuadPart;
 #elif __linux__
-    return (double)pT->elapsedTime * 1E-9;
+    return (double)elapsedTime * 1E-9;
 #else /* generic Unix */
-    return (double)pT->elapsedTime * 1E-6;
+    return (double)elapsedTime * 1E-6;
 #endif /* (choice of OS) */
 }
 
 template<class T>
 inline double stop_watch_base<T>::getElapsedTime(void)
 {
-    T *pT = static_cast<T *>(this);
-    return pT->getSeconds();
+    return getSeconds();
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -410,7 +439,6 @@ public:
 
     stop_watch &operator = (const stop_watch &t);
 
-    void    clear(void);
     void    reset(void);
 
     //! restart() is equivalent to reset() and begin()
@@ -423,7 +451,7 @@ public:
     void    begin(void);
     void    end(void);
 
-    double  getElapsedTime(void);
+    void    native_get_elapsedTime(timestamp_t &elapsedTime);
 };
 
 inline stop_watch::stop_watch(const stop_watch &src) : stop_watch_base<stop_watch>(src)
@@ -431,40 +459,26 @@ inline stop_watch::stop_watch(const stop_watch &src) : stop_watch_base<stop_watc
     // Do nothing!!
 }
 
-inline stop_watch &stop_watch::operator = (const stop_watch &t)
+inline stop_watch &stop_watch::operator = (const stop_watch &sw)
 {
-    bIsRunning  = t.bIsRunning;
-    startTime   = t.startTime;
-    stopTime    = t.stopTime;
-    elapsedTime = t.elapsedTime;
+    startTime   = sw.startTime;
+    stopTime    = sw.stopTime;
+    bIsRunning  = sw.bIsRunning;
     return *this;
-}
-
-inline void stop_watch::clear(void)
-{
-    startTime   = 0;
-    stopTime    = 0;
-    elapsedTime = 0;
-
-    bIsRunning = false;
 }
 
 inline void stop_watch::reset(void)
 {
     startTime   = 0;
     stopTime    = 0;
-    elapsedTime = 0;
 
-    bIsRunning = false;
+    bIsRunning  = false;
 }
 
 //! restart() is equivalent to reset() and begin()
 inline void stop_watch::restart(void)
 {
-    elapsedTime = 0;
-
     native_start();
-
     bIsRunning = true;
 }
 
@@ -490,7 +504,6 @@ inline void stop_watch::stop(void)
 {
     if (bIsRunning) {
         native_stop();
-        elapsedTime = stopTime - startTime;
         bIsRunning = false;
     }
 }
@@ -500,9 +513,16 @@ inline void stop_watch::end(void)
     stop();
 }
 
-inline double stop_watch::getElapsedTime(void)
+inline void stop_watch::native_get_elapsedTime(timestamp_t &elapsedTime)
 {
-    return getSeconds();
+    if (bIsRunning) {
+        timestamp_t nowTime_;
+        native_timestamp(nowTime_);
+        elapsedTime = nowTime_ - startTime;
+    }
+    else {
+        elapsedTime = stopTime - startTime;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -515,7 +535,7 @@ class stop_watch_ex : public stop_watch_base<stop_watch_ex>
 {
 public:
     //! Construct an absolute timestamp initialized to zero.
-    stop_watch_ex() : stop_watch_base<stop_watch_ex>(), suspendStartTime(0), suspendTotalTime(0), elapsedTimeTotal(0) {};
+    stop_watch_ex() : stop_watch_base<stop_watch_ex>(), bIsSuspended(false), suspendStartTime(0), suspendTotalTime(0), elapsedTimeTotal(0) {};
     stop_watch_ex(const stop_watch_ex &src);
 
     stop_watch_ex &operator = (const stop_watch_ex &sw);
@@ -540,11 +560,12 @@ public:
     void    pause(void);
     void    continue_(void);
 
-    double  getElapsedTime(void);
+    void    native_get_elapsedTime(timestamp_t &elapsedTime);
+    void    native_get_elapsedTimeTotal(timestamp_t &elapsedTime);
 
     //! get total times
-    double  getTotalSeconds(void);
     double  getTotalMillisec(void);
+    double  getTotalSeconds(void);
     double  getTotalElapsedTime(void);
 
 protected:
@@ -553,6 +574,7 @@ protected:
     void    native_suspend_stop();
 
 protected:
+    bool        bIsSuspended;
     timestamp_t suspendStartTime;
     timestamp_t suspendTotalTime;
     timestamp_t elapsedTimeTotal;
@@ -560,6 +582,7 @@ protected:
 
 inline stop_watch_ex::stop_watch_ex(const stop_watch_ex &src) : stop_watch_base<stop_watch_ex>(src)
 {
+    bIsSuspended          = src.bIsSuspended;
     suspendStartTime    = src.suspendStartTime;
     suspendTotalTime    = src.suspendTotalTime;
     elapsedTimeTotal    = src.elapsedTimeTotal;
@@ -570,7 +593,10 @@ inline stop_watch_ex &stop_watch_ex::operator = (const stop_watch_ex &sw)
     bIsRunning          = sw.bIsRunning;
     startTime           = sw.startTime;
     stopTime            = sw.stopTime;
-    elapsedTime         = sw.elapsedTime;
+    //elapsedTime         = sw.elapsedTime;
+
+    bIsSuspended          = sw.bIsSuspended;
+    suspendStartTime    = sw.suspendStartTime;
     suspendTotalTime    = sw.suspendTotalTime;
     elapsedTimeTotal    = sw.elapsedTimeTotal;
     return *this;
@@ -578,97 +604,51 @@ inline stop_watch_ex &stop_watch_ex::operator = (const stop_watch_ex &sw)
 
 inline void stop_watch_ex::native_suspend_start()
 {
-    if (suspendStartTime != 0)
-        return;
-
-#if _WIN32 || _WIN64
-    LARGE_INTEGER qp_cnt;
-    QueryPerformanceCounter(&qp_cnt);
-    suspendStartTime = static_cast<timestamp_t>(qp_cnt.QuadPart);
-#elif __linux__
-    struct timespec ts;
-#if GMTL_USE_ASSERT
-    int status =
-#endif /* GMTL_USE_ASSERT */
-        clock_gettime(CLOCK_REALTIME, &ts);
-    _GMTL_ASSERT(status == 0, "CLOCK_REALTIME not supported");
-    suspendStartTime = static_cast<timestamp_t>(static_cast<int64_t>(1000000000UL) * static_cast<int64_t>(ts.tv_sec) + static_cast<int64_t>(ts.tv_nsec));
-#else /* generic Unix */
-    struct timeval tv;
-#if GMTL_USE_ASSERT
-    int status =
-#endif /* GMTL_USE_ASSERT */
-        gettimeofday(&tv, NULL);
-    _GMTL_ASSERT(status == 0, "gettimeofday failed");
-    suspendStartTime = static_cast<timestamp_t>(static_cast<int64_t>(1000000) * static_cast<int64_t>(tv.tv_sec) + static_cast<int64_t>(tv.tv_usec));
-#endif /*(choice of OS) */
+    native_timestamp(suspendStartTime);
 }
 
 inline void stop_watch_ex::native_suspend_stop()
 {
-    if (suspendStartTime == 0)
-        return;
-
     timestamp_t suspendStopTime_;
-#if _WIN32 || _WIN64
-    LARGE_INTEGER qp_cnt;
-    QueryPerformanceCounter(&qp_cnt);
-    suspendStopTime_ = static_cast<timestamp_t>(qp_cnt.QuadPart);
-#elif __linux__
-    struct timespec ts;
-#if GMTL_USE_ASSERT
-    int status =
-#endif /* GMTL_USE_ASSERT */
-        clock_gettime(CLOCK_REALTIME, &ts);
-    _GMTL_ASSERT(status == 0, "CLOCK_REALTIME not supported");
-    suspendStopTime_ = static_cast<timestamp_t>(static_cast<int64_t>(1000000000UL) * static_cast<int64_t>(ts.tv_sec) + static_cast<int64_t>(ts.tv_nsec));
-#else /* generic Unix */
-    struct timeval tv;
-#if GMTL_USE_ASSERT
-    int status =
-#endif /* GMTL_USE_ASSERT */
-        gettimeofday(&tv, NULL);
-    _GMTL_ASSERT(status == 0, "gettimeofday failed");
-    suspendStopTime_ = static_cast<timestamp_t>(static_cast<int64_t>(1000000) * static_cast<int64_t>(tv.tv_sec) + static_cast<int64_t>(tv.tv_usec));
-#endif /*(choice of OS) */
+    native_timestamp(suspendStopTime_);
 
     suspendTotalTime += suspendStopTime_ - suspendStartTime;
-    suspendStartTime = 0;
 }
 
 inline void stop_watch_ex::clear(void)
 {
     startTime           = 0;
     stopTime            = 0;
-    elapsedTime         = 0;
     suspendStartTime    = 0;
     suspendTotalTime    = 0;
+
     elapsedTimeTotal    = 0;
 
     bIsRunning = false;
+    bIsSuspended = false;
 }
 
 inline void stop_watch_ex::reset(void)
 {
     startTime           = 0;
     stopTime            = 0;
-    elapsedTime         = 0;
     suspendStartTime    = 0;
     suspendTotalTime    = 0;
 
     bIsRunning = false;
+    bIsSuspended = false;
 }
 
 //! restart() is equivalent to reset() and begin()
 inline void stop_watch_ex::restart(void)
 {
-    elapsedTime         = 0;
     suspendStartTime    = 0;
     suspendTotalTime    = 0;
 
     native_start();
 
     bIsRunning = true;
+    bIsSuspended = false;
 }
 
 inline void stop_watch_ex::rebegin(void)
@@ -681,6 +661,7 @@ inline void stop_watch_ex::start(void)
     if (!bIsRunning) {
         native_start();
         bIsRunning = true;
+        bIsSuspended = false;
     }
 }
 
@@ -692,13 +673,18 @@ inline void stop_watch_ex::begin(void)
 inline void stop_watch_ex::stop(void)
 {
     if (bIsRunning) {
+        timestamp_t elapsedTime;
         native_stop();
-        elapsedTime = stopTime - startTime - suspendTotalTime;
+        if (!bIsSuspended)
+            elapsedTime = stopTime - startTime - suspendTotalTime;
+        else
+            elapsedTime = suspendStartTime - startTime;
+
         if (elapsedTime > (timestamp_t)0)
             elapsedTimeTotal += elapsedTime;
-        else
-            elapsedTimeTotal -= elapsedTime;
+
         bIsRunning = false;
+        bIsSuspended = false;
     }
 }
 
@@ -709,12 +695,18 @@ inline void stop_watch_ex::end(void)
 
 inline void stop_watch_ex::suspend(void)
 {
-    native_suspend_start();
+    if (!bIsSuspended) {
+        native_suspend_start();
+        bIsSuspended = true;
+    }
 }
 
 inline void stop_watch_ex::resume(void)
 {
-    native_suspend_stop();
+    if (bIsSuspended) {
+        native_suspend_stop();
+        bIsSuspended = false;
+    }
 }
 
 inline void stop_watch_ex::pause(void)
@@ -727,38 +719,68 @@ inline void stop_watch_ex::continue_(void)
     resume();
 }
 
-inline double stop_watch_ex::getElapsedTime(void)
+inline void stop_watch_ex::native_get_elapsedTime(timestamp_t &elapsedTime)
 {
-    return getSeconds();
+    if (bIsRunning) {
+        timestamp_t nowTime_;
+        native_timestamp(nowTime_);
+        if (!bIsSuspended)
+            elapsedTime = nowTime_ - startTime - suspendTotalTime;
+        else
+            elapsedTime = suspendStartTime - startTime;
+    }
+    else {
+        if (!bIsSuspended)
+            elapsedTime = stopTime - startTime - suspendTotalTime;
+        else
+            elapsedTime = suspendStartTime - startTime;
+    }
+}
+
+inline void stop_watch_ex::native_get_elapsedTimeTotal(timestamp_t &elapsedTimeTotal_)
+{
+    if (bIsRunning) {
+        timestamp_t elapsedTime;
+        native_get_elapsedTime(elapsedTime);
+        if (elapsedTime > (timestamp_t)0)
+            elapsedTimeTotal_ = elapsedTimeTotal + elapsedTime;
+        else
+            elapsedTimeTotal_ = elapsedTimeTotal;
+    }
+    else {
+        elapsedTimeTotal_ = elapsedTimeTotal;
+    }
 }
 
 inline double stop_watch_ex::getTotalMillisec(void)
 {
-    stop();
+    timestamp_t elapsedTimeTotal_;
+    native_get_elapsedTimeTotal(elapsedTimeTotal_);
 
 #if _WIN32 || _WIN64
     LARGE_INTEGER qp_freq;
     QueryPerformanceFrequency(&qp_freq);
-    return ((double)elapsedTimeTotal / (double)qp_freq.QuadPart) * 1E3;
+    return ((double)elapsedTimeTotal_ / (double)qp_freq.QuadPart) * 1E3;
 #elif __linux__
-    return (double)elapsedTimeTotal * 1E-6;
+    return (double)elapsedTimeTotal_ * 1E-6;
 #else /* generic Unix */
-    return (double)elapsedTimeTotal * 1E-3;
+    return (double)elapsedTimeTotal_ * 1E-3;
 #endif /* (choice of OS) */
 }
 
 inline double stop_watch_ex::getTotalSeconds(void)
 {
-    stop();
+    timestamp_t elapsedTimeTotal_;
+    native_get_elapsedTimeTotal(elapsedTimeTotal_);
 
 #if _WIN32 || _WIN64
     LARGE_INTEGER qp_freq;
     QueryPerformanceFrequency(&qp_freq);
-    return (double)elapsedTimeTotal / (double)qp_freq.QuadPart;
+    return (double)elapsedTimeTotal_ / (double)qp_freq.QuadPart;
 #elif __linux__
-    return (double)elapsedTimeTotal * 1E-9;
+    return (double)elapsedTimeTotal_ * 1E-9;
 #else /* generic Unix */
-    return (double)elapsedTimeTotal * 1E-6;
+    return (double)elapsedTimeTotal_ * 1E-6;
 #endif /* (choice of OS) */
 }
 
