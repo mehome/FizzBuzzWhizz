@@ -99,6 +99,8 @@ public:
     static timestamp_t  currentTimeMillis(void);
     static double       currentTimeMillisf(void);
 
+    timestamp_t getTimeStamp(void);
+
     timestamp_t getStartTime(void) { return startTime; };
     timestamp_t getStopTime(void)  { return stopTime;  };
 
@@ -362,6 +364,14 @@ inline double stop_watch_base<T>::intervalSeconds(double t1, double t2)
 }
 
 template<class T>
+inline typename stop_watch_base<T>::timestamp_t stop_watch_base<T>::getTimeStamp(void)
+{
+    timestamp_t timeStamp;
+    native_timestamp(timeStamp);
+    return timeStamp;
+}
+
+template<class T>
 inline typename stop_watch_base<T>::timestamp_t stop_watch_base<T>::currentTimeMillis(void)
 {
     timestamp_t now_msecs = stop_watch_base<T>::native_now_ms();
@@ -376,7 +386,7 @@ inline double stop_watch_base<T>::currentTimeMillisf(void)
 }
 
 template<class T>
-void annlab::stop_watch_base<T>::native_get_elapsedTime(timestamp_t &elapsedTime)
+inline void stop_watch_base<T>::native_get_elapsedTime(timestamp_t &elapsedTime)
 {
     T *pT = static_cast<T *>(this);
     return pT->native_get_elapsedTime(elapsedTime);
