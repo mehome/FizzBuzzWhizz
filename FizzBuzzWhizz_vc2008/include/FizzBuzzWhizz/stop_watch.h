@@ -125,17 +125,17 @@ protected:
 template<class T>
 inline stop_watch_base<T>::stop_watch_base(const stop_watch_base &src)
 {
-    bIsRunning  = src.bIsRunning;
     startTime   = src.startTime;
     stopTime    = src.stopTime;
+    bIsRunning  = src.bIsRunning;
 }
 
 template<class T>
 inline stop_watch_base<T> &stop_watch_base<T>::operator = (const stop_watch_base &sw)
 {
-    bIsRunning  = sw.bIsRunning;
     startTime   = sw.startTime;
     stopTime    = sw.stopTime;
+    bIsRunning  = sw.bIsRunning;
     return *this;
 }
 
