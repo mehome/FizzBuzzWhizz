@@ -48,8 +48,6 @@
 #include <sys/time.h>
 #endif /* (choice of OS) */
 
-#include <FizzBuzzWhizz/stop_watch_base.h>
-
 namespace annlab {
 
 ///////////////////////////////////////////////////////////////////////////
@@ -701,7 +699,7 @@ inline void stop_watch_ex::stop(void)
         else
             elapsedTimeTotal -= elapsedTime;
         bIsRunning = false;
-    }    
+    }
 }
 
 inline void stop_watch_ex::end(void)
