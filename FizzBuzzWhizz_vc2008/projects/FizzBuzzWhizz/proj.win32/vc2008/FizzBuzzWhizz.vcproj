@@ -232,6 +232,10 @@
 				RelativePath="..\..\..\..\include\FizzBuzzWhizz\stop_watch.h"
 				>
 			</File>
+			<File
+				RelativePath="..\..\..\..\include\FizzBuzzWhizz\stop_watch_list.h"
+				>
+			</File>
 			<Filter
 				Name="vs"
 				>

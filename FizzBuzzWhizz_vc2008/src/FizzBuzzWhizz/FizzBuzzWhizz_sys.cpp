@@ -1,10 +1,10 @@
 
+#include <malloc.h>
+
 #include <FizzBuzzWhizz/FizzBuzzWhizz_sys.h>
 #include <FizzBuzzWhizz/stop_watch.h>
-
-#include <FizzBuzzWhizz/FastStrUtils.h>
 #include <FizzBuzzWhizz/aligned_malloc.h>
-#include <malloc.h>
+#include <FizzBuzzWhizz/FastStrUtils.h>
 
 using namespace annlab;
 

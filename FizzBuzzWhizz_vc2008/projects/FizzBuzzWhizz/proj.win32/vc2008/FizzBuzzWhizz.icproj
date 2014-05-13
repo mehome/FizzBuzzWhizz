@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="gb2312"?>
+<VisualStudioProject
+	ProjectType="Intel C++ Project"
+	Version="11.1"
+	Name="FizzBuzzWhizz"
+	ProjectGUID="{180957B4-D0DE-47DA-91AD-AC4330302A94}"
+	VCNestedProjectGUID="{B5A6D2EC-05A7-4747-AC39-95F670523F84}"
+	VCNestedProjectFileName="FizzBuzzWhizz.vcproj">
+	<Configurations/>
+	<Files/>
+</VisualStudioProject>

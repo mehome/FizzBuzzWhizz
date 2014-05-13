@@ -346,7 +346,7 @@ void * __cdecl iso_aligned_offset_recalloc(void *ptr, size_t count, size_t new_s
 
     /* ensure that (size * count) does not overflow */
     if (count > 0) {
-        _ASSERT((_HEAP_MAXREQ / count) >= size);
+        _ASSERT((_HEAP_MAXREQ / count) >= new_size);
     }
 
     user_size = new_size * count;

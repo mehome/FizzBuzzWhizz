@@ -1,5 +1,5 @@
 
-#include <vld.h>
+//#include <vld.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -42,6 +42,7 @@ void display_special_num_list(const int max_word_type, const int special_num_lis
 /* 预热时间至少要大于500毫秒, 如果还不够, 可以自行增加最小预热时间 */
 void iso_cpu_warm_up()
 {
+#ifndef _DEBUG
     stop_watch sw;
     int sum = 0;
     double elapsedTime = 0.0;
@@ -62,6 +63,7 @@ void iso_cpu_warm_up()
     // 输出sum的值只是为了防止编译器把循环优化掉
     printf("sum = %u, time: %0.3f ms\n", sum, elapsedTime);
     printf("CPU warm up done ... \n\n");
+#endif
 }
 
 void FizzBuzzWhizz_Test_Wrapper_3(const int max_number, bool display_to_screen)
@@ -209,7 +211,7 @@ int main(int argc, char* argv[])
 {
 #ifdef _DEBUG
     aligned_malloc_test();
-    return 0;
+    //return 0;
 #endif
 
     // 唤醒CPU, 进行预热, 因为现在很多主板和CPU都支持空闲时自动降频
