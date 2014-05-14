@@ -114,7 +114,8 @@ protected:
     static timestamp_t  native_now();
     static double       native_nowf();
     static timestamp_t  native_now_ms();
-    static void         native_timestamp(timestamp_t &result);
+
+    static void         native_get_timestamp(timestamp_t &result);
 
     void    native_start();
     void    native_stop();
@@ -143,7 +144,7 @@ inline stop_watch_base<T> &stop_watch_base<T>::operator = (const stop_watch_base
 
 /* 单位: 根据各平台最小单位来决定, Windows: 心跳计数, tick; Linux: 纳秒, nsec; Unix: 微秒, usec; */
 template<class T>
-inline void stop_watch_base<T>::native_timestamp(timestamp_t &result)
+inline void stop_watch_base<T>::native_get_timestamp(timestamp_t &result)
 {
 #if _WIN32 || _WIN64
     LARGE_INTEGER qp_cnt;
@@ -271,14 +272,14 @@ inline typename stop_watch_base<T>::timestamp_t stop_watch_base<T>::native_now_m
 template<class T>
 inline void stop_watch_base<T>::native_start()
 {
-    native_timestamp(startTime);
+    native_get_timestamp(startTime);
     stopTime = startTime;
 }
 
 template<class T>
 inline void stop_watch_base<T>::native_stop()
 {
-    native_timestamp(stopTime);
+    native_get_timestamp(stopTime);
 }
 
 template<class T>
@@ -367,7 +368,7 @@ template<class T>
 inline typename stop_watch_base<T>::timestamp_t stop_watch_base<T>::getTimeStamp(void)
 {
     timestamp_t timeStamp;
-    native_timestamp(timeStamp);
+    native_get_timestamp(timeStamp);
     return timeStamp;
 }
 
@@ -527,7 +528,7 @@ inline void stop_watch::native_get_elapsedTime(timestamp_t &elapsedTime)
 {
     if (bIsRunning) {
         timestamp_t nowTime_;
-        native_timestamp(nowTime_);
+        native_get_timestamp(nowTime_);
         elapsedTime = nowTime_ - startTime;
     }
     else {
@@ -549,6 +550,8 @@ public:
     stop_watch_ex(const stop_watch_ex &src);
 
     stop_watch_ex &operator = (const stop_watch_ex &sw);
+
+    bool    isSuspended(void) { return bIsSuspended; };
 
     void    clear(void);
     void    reset(void);
@@ -592,7 +595,7 @@ protected:
 
 inline stop_watch_ex::stop_watch_ex(const stop_watch_ex &src) : stop_watch_base<stop_watch_ex>(src)
 {
-    bIsSuspended          = src.bIsSuspended;
+    bIsSuspended        = src.bIsSuspended;
     suspendStartTime    = src.suspendStartTime;
     suspendTotalTime    = src.suspendTotalTime;
     elapsedTimeTotal    = src.elapsedTimeTotal;
@@ -603,9 +606,8 @@ inline stop_watch_ex &stop_watch_ex::operator = (const stop_watch_ex &sw)
     bIsRunning          = sw.bIsRunning;
     startTime           = sw.startTime;
     stopTime            = sw.stopTime;
-    //elapsedTime         = sw.elapsedTime;
 
-    bIsSuspended          = sw.bIsSuspended;
+    bIsSuspended        = sw.bIsSuspended;
     suspendStartTime    = sw.suspendStartTime;
     suspendTotalTime    = sw.suspendTotalTime;
     elapsedTimeTotal    = sw.elapsedTimeTotal;
@@ -614,13 +616,13 @@ inline stop_watch_ex &stop_watch_ex::operator = (const stop_watch_ex &sw)
 
 inline void stop_watch_ex::native_suspend_start()
 {
-    native_timestamp(suspendStartTime);
+    native_get_timestamp(suspendStartTime);
 }
 
 inline void stop_watch_ex::native_suspend_stop()
 {
     timestamp_t suspendStopTime_;
-    native_timestamp(suspendStopTime_);
+    native_get_timestamp(suspendStopTime_);
 
     suspendTotalTime += suspendStopTime_ - suspendStartTime;
 }
@@ -733,7 +735,7 @@ inline void stop_watch_ex::native_get_elapsedTime(timestamp_t &elapsedTime)
 {
     if (bIsRunning) {
         timestamp_t nowTime_;
-        native_timestamp(nowTime_);
+        native_get_timestamp(nowTime_);
         if (!bIsSuspended)
             elapsedTime = nowTime_ - startTime - suspendTotalTime;
         else
