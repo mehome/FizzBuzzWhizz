@@ -52,7 +52,7 @@ typedef unsigned int index_mask_t;
 #define iso_aligned_offset_malloc(size, alignment, offset) \
                                             malloc(size)
 #else
-        //
+//
 #endif
 
 #ifndef _MSC_VER

@@ -12,6 +12,12 @@
 #include <stdint.h>
 #endif
 
+#ifdef _DEBUG
+#define _USE_ALIGN_SIGN_            1
+#else
+#define _USE_ALIGN_SIGN_            0
+#endif
+
 #define DEFAILT_CACHE_ALIGNMENT     128
 
 // intel 32bit CPU cache line align size is 32 or 64 byte
@@ -56,13 +62,13 @@
 /* f = v && !(v & (v - 1)); */
 /* 两者是一样的, 看喜好... */
 
-#define IS_POWER_OF_2_FAST(v)       (((size_t)(v) & ((size_t)(v) - 1)) == 0)
+#define IS_POWER_OF_2(v)            (((size_t)(v) & ((size_t)(v) - 1)) == 0)
 
-#define NOT_IS_POWER_OF_2_FAST(v)   ((size_t)(v) & ((size_t)(v) - 1))
+#define NOT_IS_POWER_OF_2(v)        ((size_t)(v) & ((size_t)(v) - 1))
 
-#define IS_POWER_OF_2(v)            ((v) && (!((size_t)(v) & ((size_t)(v) - 1))))
+#define IS_POWER_OF_2_SAFE(v)       ((v) && (!((size_t)(v) & ((size_t)(v) - 1))))
 
-#define _IS_POWER_OF_2(v)           ((((v) != 0)) && (((v) & ((v) - 1)) == 0))
+#define _IS_POWER_OF_2_SAFE(v)      ((((v) != 0)) && (((v) & ((v) - 1)) == 0))
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,7 +77,9 @@ extern "C" {
 typedef struct align_block_header_t
 {
     void *          pvAlloc;
+#if _USE_ALIGN_SIGN_
     unsigned char   Sign[ALIGN_SIGN_SIZE];
+#endif
 } ALIGN_BLOCK_HEADER, * PALIGN_BLOCK_HEADER;
 
 #ifndef iso_aligned_malloc

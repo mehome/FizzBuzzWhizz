@@ -1,9 +1,10 @@
 
-#include <FizzBuzzWhizz/aligned_malloc.h>
 #include <crtdbg.h>
 #include <malloc.h>
 #include <memory.h>
 #include <errno.h>
+
+#include <FizzBuzzWhizz/aligned_malloc.h>
 
 #ifndef _MSC_VER
   #ifndef _RPT1
@@ -139,7 +140,11 @@ size_t __cdecl iso_aligned_msize(void *ptr, size_t alignment, size_t offset)
     ALIGN_BLOCK_HEADER *pBlockHdr = NULL; /* points to the beginning of the allocated block*/
     pBlockHdr = (ALIGN_BLOCK_HEADER *)((uintptr_t)ptr & ~(sizeof(uintptr_t) - 1)) - 1;
 
+#ifdef __linux__
+    total_size = malloc_usable_size(pBlockHdr->pvAlloc);
+#else
     total_size = _msize(pBlockHdr->pvAlloc);
+#endif
     header_size = (uintptr_t)ptr - (uintptr_t)(pBlockHdr->pvAlloc);
     uintptr_offset = (0 - offset) & (sizeof(uintptr_t) - 1);
 
@@ -162,11 +167,11 @@ void * __cdecl iso_aligned_malloc(size_t size, size_t alignment)
 #endif
 
     /* 如果不是2的幂次方, 则调整到最接近的2的幂次方 */
-    _ASSERT(IS_POWER_OF_2_FAST(alignment));
+    _ASSERT(IS_POWER_OF_2(alignment));
 #if 1
-    if (NOT_IS_POWER_OF_2_FAST(alignment)) {
+    if (NOT_IS_POWER_OF_2(alignment)) {
         alignment = iso_next_power_of_2(alignment);
-        _ASSERT(IS_POWER_OF_2_FAST(alignment));
+        _ASSERT(IS_POWER_OF_2(alignment));
     }
 #endif
 
@@ -187,7 +192,9 @@ void * __cdecl iso_aligned_malloc(size_t size, size_t alignment)
         pBlockHdr = (ALIGN_BLOCK_HEADER *)(pvData) - 1;
         _ASSERT((uintptr_t)pBlockHdr >= pvAlloc);
 
+#if _USE_ALIGN_SIGN_
         ::memset((void *)pBlockHdr->Sign, _cAlignSignFill, ALIGN_SIGN_SIZE);
+#endif
         pBlockHdr->pvAlloc = (void *)pvAlloc;
 
 #ifdef _DEBUG
@@ -235,11 +242,11 @@ void * __cdecl iso_aligned_offset_malloc(size_t size, size_t alignment, size_t o
         return NULL;
 
     /* 如果不是2的幂次方, 则调整到最接近的2的幂次方 */
-    _ASSERT(IS_POWER_OF_2_FAST(alignment));
+    _ASSERT(IS_POWER_OF_2(alignment));
 #if 1
-    if (NOT_IS_POWER_OF_2_FAST(alignment)) {
+    if (NOT_IS_POWER_OF_2(alignment)) {
         alignment = iso_next_power_of_2(alignment);
-        _ASSERT(IS_POWER_OF_2_FAST(alignment));
+        _ASSERT(IS_POWER_OF_2(alignment));
     }
 #endif
 
@@ -261,7 +268,9 @@ void * __cdecl iso_aligned_offset_malloc(size_t size, size_t alignment, size_t o
         pBlockHdr = (ALIGN_BLOCK_HEADER *)(pvData - uintptr_offset) - 1;
         _ASSERT((uintptr_t)pBlockHdr >= pvAlloc);
 
+#if _USE_ALIGN_SIGN_
         ::memset((void *)pBlockHdr->Sign, _cAlignSignFill, ALIGN_SIGN_SIZE);
+#endif
         pBlockHdr->pvAlloc = (void *)pvAlloc;
 
 #ifdef _DEBUG
@@ -293,28 +302,36 @@ void * __cdecl iso_aligned_offset_realloc(void *ptr, size_t new_size, size_t ali
 
     s_pBlockHdr = (ALIGN_BLOCK_HEADER *)((uintptr_t)ptr & ~(sizeof(uintptr_t) - 1)) -1;
 
+#ifdef _DEBUG
     if (_iso_check_bytes((unsigned char *)ptr - NO_MANS_LAND_SIZE, s_cNoMansLandFill, NO_MANS_LAND_SIZE)) {
         // We don't know where (file, linenum) ptr was allocated
         _RPT1(_CRT_ERROR, "The block at 0x%p was not allocated by _aligned routines, use realloc()", ptr);
         errno = EINVAL;
         return NULL;
     }
+#endif
 
+#if _USE_ALIGN_SIGN_
     if (!_iso_check_bytes((unsigned char *)s_pBlockHdr->Sign, _cAlignSignFill, ALIGN_SIGN_SIZE)) {
         // We don't know where (file, linenum) ptr was allocated
         _RPT1(_CRT_ERROR, "Damage before 0x%p which was allocated by aligned routine\n", ptr);
     }
+#endif
 
+#ifdef __linux__
+    mov_sz = malloc_usable_size(s_pBlockHdr->pvAlloc) - ((uintptr_t)ptr - (uintptr_t)s_pBlockHdr->pvAlloc);
+#else
     mov_sz = _msize(s_pBlockHdr->pvAlloc) - ((uintptr_t)ptr - (uintptr_t)s_pBlockHdr->pvAlloc);
+#endif
 
     /* validation section */
     _ASSERT(offset == 0 || offset < new_size);
 
     /* 如果不是2的幂次方, 则调整到最接近的2的幂次方 */
-    _ASSERT(IS_POWER_OF_2_FAST(alignment));
-    if (NOT_IS_POWER_OF_2_FAST(alignment)) {
+    _ASSERT(IS_POWER_OF_2(alignment));
+    if (NOT_IS_POWER_OF_2(alignment)) {
         alignment = iso_next_power_of_2(alignment);
-        _ASSERT(IS_POWER_OF_2_FAST(alignment));
+        _ASSERT(IS_POWER_OF_2(alignment));
     }
 
     alignment = (alignment > sizeof(uintptr_t) ? alignment : sizeof(uintptr_t)) -1;
@@ -326,7 +343,9 @@ void * __cdecl iso_aligned_offset_realloc(void *ptr, size_t new_size, size_t ali
 
     pvData =((pvAlloc + alignment + sizeof(ALIGN_BLOCK_HEADER) + uintptr_offset + offset) & ~alignment) - offset;
     pBlockHdr = (ALIGN_BLOCK_HEADER *)(pvData - uintptr_offset) - 1;
+#if _USE_ALIGN_SIGN_
     ::memset((void *)pBlockHdr->Sign, _cAlignSignFill, ALIGN_SIGN_SIZE);
+#endif
     pBlockHdr->pvAlloc = (void *)pvAlloc;
 
     ::memcpy((void *)pvData, ptr, mov_sz > new_size ? new_size : mov_sz);
@@ -367,6 +386,7 @@ void * __cdecl iso_aligned_offset_calloc(size_t count, size_t size, size_t align
     return iso_aligned_offset_recalloc(NULL, count, size, alignment, offset);
 }
 
+/* this function is unuseful */
 void * __cdecl _iso_free_block_header(ALIGN_BLOCK_HEADER *pBlockHdr)
 {
     void *pvAlloc = NULL;
@@ -382,6 +402,7 @@ void * __cdecl _iso_free_block_header(ALIGN_BLOCK_HEADER *pBlockHdr)
             pvAlloc = (void *)-2;
         }
         else {
+#if _USE_ALIGN_SIGN_
             if (_iso_check_bytes(pBlockHdr->Sign, _cAlignSignFill, ALIGN_SIGN_SIZE)) {
                 // Set and fill clear sign
                 ::memset(pBlockHdr->Sign, _cClearSignFill, ALIGN_SIGN_SIZE);
@@ -399,6 +420,7 @@ void * __cdecl _iso_free_block_header(ALIGN_BLOCK_HEADER *pBlockHdr)
                 _RPT1(_CRT_ERROR, "Damage before 0x%p which was allocated by aligned routine\n", pvAlloc);
                 pvAlloc = (void *)-1;
             }
+#endif
         }
     }
     return pvAlloc;
@@ -414,20 +436,24 @@ void __cdecl iso_aligned_free(const void *pvData)
         pBlockHdr = (ALIGN_BLOCK_HEADER *)((uintptr_t)pvData & ~(sizeof(uintptr_t) - 1)) - 1;
         _ASSERT(pBlockHdr < pvData);
 
+#ifdef _DEBUG
         if (_iso_check_bytes((unsigned char *)pvData - NO_MANS_LAND_SIZE, s_cNoMansLandFill, NO_MANS_LAND_SIZE)) {
             // We don't know where (file, linenum) pvData was allocated
             _RPT1(_CRT_ERROR, "The block at 0x%p was not allocated by _aligned routines, use free()", pvData);
             return;
         }
+#endif
 
+#if _USE_ALIGN_SIGN_
         if (!_iso_check_bytes(pBlockHdr->Sign, _cAlignSignFill, ALIGN_SIGN_SIZE)) {
             // We don't know where (file, linenum) pvData was allocated
             _RPT1(_CRT_ERROR, "Damage before 0x%p which was allocated by aligned routine\n", pvData);
         }
+#endif
 
         pvAlloc = pBlockHdr->pvAlloc;
 
-#if 0
+#ifdef _DEBUG
         if ((void *)pBlockHdr < pvAlloc) {
             // We don't know where pvData was allocated
             _RPT1(_CRT_ERROR, "Damage before 0x%p which was allocated by aligned routine\n", pvData);
@@ -439,7 +465,9 @@ void __cdecl iso_aligned_free(const void *pvData)
         pBlockHdr->pvAlloc = NULL;
 
         // Set and fill clear sign
+  #if _USE_ALIGN_SIGN_
         ::memset(pBlockHdr->Sign, _cClearSignFill, ALIGN_SIGN_SIZE);
+  #endif
 #endif  /* _ALIGNED_FREE_CLEAR_SIGN */
 
         // Free memory block if need
