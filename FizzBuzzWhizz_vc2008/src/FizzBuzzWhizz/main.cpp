@@ -44,16 +44,16 @@ void iso_cpu_warm_up()
 {
 #ifndef _DEBUG
     stop_watch sw;
-    int sum = 0;
+    volatile int sum = 0;
     double elapsedTime = 0.0;
     printf("CPU warm up start ...\n");
     do {
         sw.restart();
         // 如果有聪明的编译器能发现这是一个固定值就牛比了, 应该没有
-        for (int i = 0; i < 100000; ++i) {
+        for (int i = 0; i < 10000; ++i) {
             sum += i;
             // 循环顺序故意颠倒过来的
-            for (int j = 10000; j >= 0; --j) {
+            for (int j = 5000; j >= 0; --j) {
                 sum -= j;
             }
         }
