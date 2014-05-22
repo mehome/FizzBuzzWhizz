@@ -191,6 +191,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\..\src\FizzBuzzWhizz\FizzBuzzWhizz_stl2.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\..\src\FizzBuzzWhizz\FizzBuzzWhizz_sys.cpp"
 				>
 			</File>
@@ -222,6 +226,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\..\include\FizzBuzzWhizz\FizzBuzzWhizz_stl.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\..\include\FizzBuzzWhizz\FizzBuzzWhizz_stl2.h"
 				>
 			</File>
 			<File
