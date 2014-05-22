@@ -69,7 +69,7 @@ void FizzBuzzWhizz_stl2(const int max_number,
 
     // 求出mask对应的特殊报数字符串, 共max_mask种(2^3 = 8种)
     string sayword;
-    string *mask_sayword_list = new string[max_mask];
+    string *mask_sayword_list = new string[max_mask];;
 
     sayword.reserve(max_word_length);
     //sayword.resize(max_word_length);
@@ -173,7 +173,8 @@ void FizzBuzzWhizz_stl2(const int max_number,
     char buffer[32];
 
     // 如果不输出到屏幕, 则输出到字符串数组
-    string *say_word_result = new string[max_number + 1];
+    //string *say_word_result = new string[max_number + 1];
+    string *say_word_result = *out_sayword_result;
     //say_word_result[0] = "";
 
     for (num = 1; num <= max_number; ++num) {
@@ -188,6 +189,7 @@ void FizzBuzzWhizz_stl2(const int max_number,
         }
     }
 
+    /*
     if (out_sayword_result != NULL) {
         *out_sayword_result = say_word_result;
     }
@@ -195,6 +197,7 @@ void FizzBuzzWhizz_stl2(const int max_number,
         if (mask_sayword_list)
             delete[] mask_sayword_list;
     }
+    //*/
 
 #if defined(FIZZ_NATIVE_USE_STOPWATCH) && (FIZZ_NATIVE_USE_STOPWATCH != 0)
     sw.stop();
@@ -234,7 +237,7 @@ void FizzBuzzWhizz_stl2_Test(const int max_number,
     stop_watch sw;
     string *say_word_result = NULL;
 
-    //say_word_result = new string[max_number + 1];
+    say_word_result = new string[max_number + 1];
 
     if (display_to_screen) {
 
@@ -270,10 +273,12 @@ void FizzBuzzWhizz_stl2_Test(const int max_number,
         sw.start();
         for (int i = 0; i < MAX_LOOP_TIME; ++i) {
             FizzBuzzWhizz_stl2(max_number, max_word_type, max_word_length, say_word_list, special_num_list, &say_word_result);
+            /*
             if (say_word_result) {
                 delete[] say_word_result;
                 say_word_result = NULL;
             }
+            //*/
         }
         sw.stop();
 
